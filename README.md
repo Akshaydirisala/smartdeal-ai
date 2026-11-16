@@ -1,6 +1,18 @@
 # SmartDeal AI v3 — LangGraph Learning Edition
 
-An educational, runnable **shopping decision agent** that compares **listed prices, category-level returns and warranty coverage**, with real Google Shopping results when configured. It does not automatically buy anything.
+An educational, runnable **shopping decision agent** that compares **listed prices, category-level returns and warranty coverage**, using live Google Shopping results. The app requires a SerpApi key and does not automatically buy anything.
+
+### Deploy on Streamlit Community Cloud
+
+1. Upload the project to a GitHub repository; never upload `.env` or secrets.
+2. Create an app at https://share.streamlit.io/, select the repository and branch, and set the main file to `app.py`.
+3. In the app's settings, add the following under **Secrets**, replacing the placeholder with a new private key:
+   ```toml
+   SERPAPI_KEY = "your-new-serpapi-key"
+   ```
+4. Deploy or restart the app, then search for a product. Live searches use SerpApi credits.
+
+SQLite on hosted platforms may be reset; configure Supabase as described below if persistent shared storage is needed. This is a beta, not a payment or checkout application.
 
 ## 1. API keys and databases
 

@@ -5,6 +5,7 @@ SUPABASE_SECRET_KEY is server-only. Never expose it in a client or Git.
 import json
 import os
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import requests
@@ -23,8 +24,14 @@ class SQLiteStore:
             c.execute('CREATE TABLE IF NOT EXISTS search_cache (query TEXT, location TEXT, fetched_at TEXT, payload TEXT, PRIMARY KEY(query,location))')
             c.execute('CREATE TABLE IF NOT EXISTS price_observations (id INTEGER PRIMARY KEY, checked_at TEXT, product_id TEXT, title TEXT, merchant TEXT, price REAL, url TEXT)')
             c.execute('CREATE TABLE IF NOT EXISTS policy_snapshots (store TEXT, category TEXT, reviewed_at TEXT, payload TEXT, PRIMARY KEY(store,category))')
+    @contextmanager
     def connect(self):
-        return sqlite3.connect(self.path, timeout=20)
+        connection = sqlite3.connect(self.path, timeout=20)
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
     def cached(self, query, location, hours):
         with self.connect() as c:
             row=c.execute('SELECT fetched_at,payload FROM search_cache WHERE query=? AND location=?',(query,location)).fetchone()

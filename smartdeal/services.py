@@ -21,7 +21,8 @@ def shopping_search(query: str, location: str = "United States") -> list:
         response.raise_for_status()
         payload = response.json()
     except (requests.RequestException, ValueError) as exc:
-        raise ShoppingAPIError(f"Shopping lookup failed: {exc}") from exc
+        # Requests exceptions can include the full URL, including the API key.
+        raise ShoppingAPIError("Shopping lookup failed. Check your SerpApi key, account and network connection.") from exc
     if payload.get("error"):
         raise ShoppingAPIError(str(payload["error"]))
     checked_at = datetime.now(timezone.utc).isoformat()

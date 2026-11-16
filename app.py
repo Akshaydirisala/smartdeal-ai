@@ -20,8 +20,8 @@ st.title('🛍️ SmartDeal AI')
 st.caption('Find the cheapest listing AND understand the value of warranties, returns, delivery and retailer benefits.')
 with st.sidebar:
     st.header('Decision settings')
-    live=bool(os.getenv('SERPAPI_KEY'))
-    mode=st.radio('Product data',['demo','live'],index=1 if live else 0,format_func=lambda x:'Synthetic demo' if x=='demo' else 'Live Google Shopping')
+    live=bool(os.getenv('SERPAPI_KEY', '').strip())
+    st.caption('Product data: Live Google Shopping')
     priority=st.selectbox('Shopping priority',['balanced','price','protection','returns'],format_func=lambda x:{'balanced':'Best overall','price':'Lowest listed price','protection':'Warranty and protection','returns':'Return flexibility'}[x])
     location=st.text_input('Shopping location','United States')
     budget=st.number_input('Maximum listed price ($, 0 = any)',min_value=0.,value=0.,step=10.)
@@ -32,12 +32,15 @@ with st.sidebar:
     st.caption('Database: Supabase' if os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_SECRET_KEY') else 'Database: local SQLite')
     st.caption('Keenable is optional. Live product offers require SERPAPI_KEY.')
 
+if not live:
+    st.error('Live search requires SERPAPI_KEY. Add it to Streamlit app Settings → Secrets, then restart the app.')
+
 with st.form('shop'):
     q=st.text_input('What would you like to buy?','65 inch smart TV',placeholder='Enter the exact brand and model if possible')
-    submitted=st.form_submit_button('Compare stores and benefits',type='primary')
+    submitted=st.form_submit_button('Compare stores and benefits',type='primary',disabled=not live)
 if submitted:
     with st.spinner('Running the LangGraph shopping workflow...'):
-        state=graph.invoke({'query':q,'location':location,'mode':mode,'priority':priority,'budget':budget or None,'min_rating':minimum,'refresh':refresh,'use_keenable':keenable,'use_ollama':ollama})
+        state=graph.invoke({'query':q,'location':location,'mode':'live','priority':priority,'budget':budget or None,'min_rating':minimum,'refresh':refresh,'use_keenable':keenable,'use_ollama':ollama})
     st.session_state['run']=state
 if 'run' in st.session_state:
     s=st.session_state['run']
@@ -108,4 +111,4 @@ if 'run' in st.session_state:
             else:st.caption('A shared exact product identifier is needed for price history.')
         st.caption('Retailer scores are illustrative. Missing shipping fees, tax, optional protection plans and membership costs are NOT assumed to be free. Rankings do not depend on affiliate commissions.')
 else:
-    st.info('Try the synthetic demo first. For live offers, add a SerpApi key in .env or your hosting platform secrets.')
+    st.info('Enter a product and compare live Google Shopping listings.' if live else 'Configure your SerpApi key to start searching live listings.')
