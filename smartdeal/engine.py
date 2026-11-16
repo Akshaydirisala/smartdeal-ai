@@ -90,17 +90,24 @@ def normalize_item(raw: dict, checked_at: str | None = None) -> Offer | None:
     Do not present the Google result as a direct merchant checkout link.
     """
     price = numeric(raw.get("extracted_price"))
+    if price is None and isinstance(raw.get("price"), str):
+        text = raw["price"].strip()
+        if re.fullmatch(r"\$\s*[\d,]+(?:\.\d{1,2})?", text):
+            price = numeric(text)
     if price is None or price <= 0 or raw.get("installment"):
         return None
-    link = raw.get("product_link") or raw.get("link") or ""
-    if not valid_url(link):
-        return None
+    link = next((candidate for candidate in (raw.get("link"), raw.get("product_link"))
+                 if isinstance(candidate, str) and valid_url(candidate)), "")
     rating = numeric(raw.get("rating"))
     if rating is not None and not 0 <= rating <= 5:
         rating = None
     reviews = numeric(raw.get("reviews"))
     shipping, note = parse_shipping(raw.get("delivery"))
     old_price = numeric(raw.get("extracted_old_price"))
+    if old_price is None and isinstance(raw.get("old_price"), str):
+        text = raw["old_price"].strip()
+        if re.fullmatch(r"\$\s*[\d,]+(?:\.\d{1,2})?", text):
+            old_price = numeric(text)
     return Offer(
         title=str(raw.get("title") or "Untitled product")[:300],
         merchant=str(raw.get("source") or "Merchant unspecified")[:100],
@@ -111,6 +118,11 @@ def normalize_item(raw: dict, checked_at: str | None = None) -> Offer | None:
         condition=str(raw.get("second_hand_condition") or "new / unspecified"),
         checked_at=checked_at or datetime.now(timezone.utc).isoformat(),
     )
+
+def thanksgiving_deals(offers: list[Offer]) -> list[Offer]:
+    """Rank only offers with a provider-reported price reduction."""
+    discounted = [offer for offer in offers if offer.discount_pct is not None]
+    return sorted(discounted, key=lambda offer: (-offer.discount_pct, -offer.value_score, offer.price))
 
 
 def score_offers(offers: list[Offer], query: str, budget: float | None = None,

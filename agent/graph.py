@@ -51,7 +51,7 @@ def cache(state):
     if state.get('mode','demo')=='demo' or state.get('refresh'):return {'cached_hit':False}
     try:
         got=get_store().cached(state['query'].lower(),state['location'],float(os.getenv('CACHE_HOURS','3')))
-        if got is not None:return {'offers':got,'cached_hit':True}
+        if got:return {'offers':got,'cached_hit':True}
     except Exception as exc:
         return {'cached_hit':False,'notes':[f'Cache unavailable ({type(exc).__name__}); attempting live search.']}
     return {'cached_hit':False}
@@ -87,7 +87,7 @@ def ranking(state):
     return {'comparison':result}
 
 def persistence(state):
-    if state.get('cached_hit') or state.get('mode')=='demo':return {}
+    if state.get('cached_hit') or state.get('mode')=='demo' or not state.get('offers'):return {}
     try:
         get_store().save(state['query'].lower(),state['location'],state.get('offers',[]),state.get('policy_records',[]))
     except Exception as exc:
